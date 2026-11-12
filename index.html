@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Compartir ficha - Tiby_BOT</title>
+  <meta name="theme-color" content="#111827">
+  <style>
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      background: #111827;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    main {
+      max-width: 430px;
+      margin: 30px auto;
+      background: #1f2937;
+      padding: 22px;
+      border-radius: 16px;
+    }
+    h2 { margin-top: 0; }
+    img {
+      display: block;
+      max-width: 100%;
+      max-height: 480px;
+      object-fit: contain;
+      margin: 18px auto;
+      border-radius: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #share { background: #25D366; color: #fff; }
+    #copy { background: #374151; color: #fff; }
+    #status { color: #d1d5db; font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <h2>🎬 Tiby_BOT</h2>
+  <p>Comparte esta ficha audiovisual por WhatsApp.</p>
+  <img id="poster" alt="Portada audiovisual" hidden>
+  <p id="status">Preparando ficha...</p>
+  <button id="share" hidden>🟢 Compartir por WhatsApp</button>
+  <button id="copy" hidden>📋 Copiar texto</button>
+</main>
+
+<script>
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const posterUrl = params.get("poster");
+  const caption = params.get("text") || "Ficha audiovisual compartida desde Tiby_BOT";
+
+  const img = document.getElementById("poster");
+  const share = document.getElementById("share");
+  const copy = document.getElementById("copy");
+  const status = document.getElementById("status");
+
+  let imageFile = null;
+
+  if (posterUrl) {
+    try {
+      const response = await fetch(posterUrl);
+      if (!response.ok) throw new Error("No se pudo descargar la portada");
+      const blob = await response.blob();
+      imageFile = new File([blob], "portada.jpg", {
+        type: blob.type || "image/jpeg"
+      });
+      img.src = URL.createObjectURL(blob);
+      img.hidden = false;
+    } catch (error) {
+      status.textContent = "No se pudo cargar la portada. Podrás compartir el texto.";
+    }
+  }
+
+  if (!posterUrl || imageFile) {
+    status.textContent = "Tu ficha está preparada.";
+  }
+
+  share.hidden = false;
+  copy.hidden = false;
+
+  share.addEventListener("click", async () => {
+    try {
+      if (imageFile && navigator.canShare &&
+          navigator.canShare({ files: [imageFile] })) {
+        await navigator.share({
+          files: [imageFile],
+          text: caption,
+          title: "Ficha audiovisual"
+        });
+      } else if (navigator.share) {
+        await navigator.share({ text: caption, title: "Ficha audiovisual" });
+      } else {
+        window.open(
+          "https://wa.me/?text=" + encodeURIComponent(caption),
+          "_blank"
+        );
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        status.textContent = "No se pudo abrir el menú de compartir.";
+      }
+    }
+  });
+
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(caption);
+      status.textContent = "Texto copiado.";
+    } catch (error) {
+      status.textContent = "No se pudo copiar el texto.";
+    }
+  });
+})();
+</script>
+</body>
+</html>
